@@ -1,58 +1,72 @@
 import Link from "next/link";
-import { Logo } from "@/components/Logo";
+import { KeyRound, Utensils } from "lucide-react";
+import { CatMark } from "@/components/CatMark";
+
+const NAV_LINKS = [
+  { href: "#features", label: "功能介紹" },
+  { href: "#how-it-works", label: "使用方式" },
+  { href: "#faq", label: "常見問題" },
+];
 
 export function MarketingFooter() {
   return (
-    <footer className="border-t border-zinc-200 bg-white dark:border-zinc-800 dark:bg-black">
-      <div className="mx-auto flex max-w-6xl flex-col gap-8 px-6 py-12 md:flex-row md:items-start md:justify-between">
-        <div className="flex flex-col gap-3">
-          <Logo />
-          <p className="max-w-xs text-sm text-zinc-500 dark:text-zinc-400">
-            用 AI 打造專屬的模擬面試官，讓你在正式面試前反覆練習、越戰越強。
+    <footer className="bg-foreground text-background">
+      <div className="mx-auto grid max-w-5xl gap-10 px-6 py-14 sm:grid-cols-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-background/10 text-gold-soft">
+              <CatMark className="h-5 w-5" />
+            </span>
+            <span className="font-display text-lg font-black">PawCal</span>
+          </div>
+          <p className="mt-3 max-w-xs text-sm leading-6 text-background/70">
+            用 AI 為你的貓咪計算每日所需熱量，並提供符合 AAFCO 與 NRC 標準的飲食建議。
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
-          <div className="flex flex-col gap-3">
-            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              產品
-            </span>
-            <a
-              href="#features"
-              className="text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-            >
-              功能介紹
-            </a>
-            <a
-              href="#how-it-works"
-              className="text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-            >
-              使用方式
-            </a>
-            <Link
-              href="/interview"
-              className="text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-            >
-              開始模擬面試
-            </Link>
-          </div>
+        <div>
+          <h3 className="text-sm font-bold text-background/50">網站導覽</h3>
+          <ul className="mt-3 space-y-2 text-sm">
+            {NAV_LINKS.map((link) => (
+              <li key={link.href}>
+                <a
+                  href={link.href}
+                  className="text-background/80 transition-colors hover:text-background"
+                >
+                  {link.label}
+                </a>
+              </li>
+            ))}
+            <li>
+              <Link
+                href="/calculator"
+                className="flex items-center gap-2 text-background/80 transition-colors hover:text-background"
+              >
+                <Utensils className="h-4 w-4" />
+                開始計算熱量
+              </Link>
+            </li>
+          </ul>
+        </div>
 
-          <div className="flex flex-col gap-3">
-            <span className="text-sm font-semibold text-zinc-900 dark:text-zinc-100">
-              資源
-            </span>
-            <a
-              href="#faq"
-              className="text-sm text-zinc-500 transition-colors hover:text-zinc-900 dark:text-zinc-400 dark:hover:text-zinc-50"
-            >
-              常見問題
-            </a>
-          </div>
+        <div>
+          <h3 className="text-sm font-bold text-background/50">帳號設定</h3>
+          <ul className="mt-3 space-y-2 text-sm">
+            <li>
+              <Link
+                href="/settings"
+                className="flex items-center gap-2 text-background/80 transition-colors hover:text-background"
+              >
+                <KeyRound className="h-4 w-4" />
+                API Key 設定
+              </Link>
+            </li>
+          </ul>
         </div>
       </div>
 
-      <div className="border-t border-zinc-200 px-6 py-6 text-center text-xs text-zinc-400 dark:border-zinc-800 dark:text-zinc-600">
-        © {new Date().getFullYear()} MockMate. 本產品為練習用途，回饋內容由 AI 生成，僅供參考。
+      <div className="border-t border-background/10 px-6 py-5 text-center text-xs text-background/50">
+        © {new Date().getFullYear()} PawCal．熱量與飲食建議僅供參考，並非獸醫診斷或處方。
       </div>
     </footer>
   );

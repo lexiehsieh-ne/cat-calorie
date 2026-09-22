@@ -1,14 +1,14 @@
 import Link from "next/link";
-import { Mic } from "lucide-react";
+import { CatMark } from "@/components/CatMark";
 
 export function Logo({ href = "/" }: { href?: string }) {
   return (
     <Link href={href} className="flex items-center gap-2">
-      <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm">
-        <Mic size={16} strokeWidth={2.5} />
+      <span className="flex h-9 w-9 items-center justify-center rounded-full bg-gold-soft text-gold">
+        <CatMark className="h-5 w-5" />
       </span>
-      <span className="text-base font-semibold tracking-tight text-zinc-900 dark:text-zinc-50">
-        MockMate
+      <span className="font-display text-lg font-black text-foreground">
+        PawCal
       </span>
     </Link>
   );
