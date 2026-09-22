@@ -1,14 +1,17 @@
+export type VisualAid = "body-condition";
+
 export type CalorieTurn = {
   role: "assistant" | "user";
   content: string;
+  visualAid?: VisualAid;
 };
 
 export type CatEnvironment = "indoor" | "outdoor" | "both";
 
 export type CatProfile = {
   breed: string;
-  ageValue: number;
-  ageUnit: "years" | "months";
+  ageYears: number;
+  ageMonths: number;
   environment: CatEnvironment;
 };
 
@@ -20,6 +23,7 @@ export type CalorieRequest = {
 export type CalorieQuestionResponse = {
   type: "question";
   question: string;
+  visualAid?: VisualAid;
 };
 
 export type FoodSuggestion = {

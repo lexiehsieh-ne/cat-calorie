@@ -13,6 +13,7 @@ import {
 } from "lucide-react";
 import { Logo } from "@/components/Logo";
 import { Ribbon } from "@/components/Ribbon";
+import { BodyConditionGuide } from "@/components/BodyConditionGuide";
 import { useApiKey } from "@/lib/use-api-key";
 import { API_KEY_HEADER } from "@/lib/constants";
 import type {
@@ -28,12 +29,18 @@ type Stage = "setup" | "asking" | "result";
 const FIELD_CLASS =
   "w-full rounded-xl border border-line bg-background px-3 py-2 text-sm text-foreground outline-none transition-colors focus:border-gold focus:ring-2 focus:ring-gold-soft";
 
+function sanitizeIntegerInput(raw: string): string {
+  const digitsOnly = raw.replace(/[^0-9]/g, "");
+  if (digitsOnly.length <= 1) return digitsOnly;
+  return digitsOnly.replace(/^0+/, "") || "0";
+}
+
 export default function CalculatorPage() {
   const apiKey = useApiKey();
 
   const [breed, setBreed] = useState("");
-  const [ageValue, setAgeValue] = useState(1);
-  const [ageUnit, setAgeUnit] = useState<"years" | "months">("years");
+  const [ageYears, setAgeYears] = useState("1");
+  const [ageMonths, setAgeMonths] = useState("0");
   const [environment, setEnvironment] = useState<CatEnvironment>("indoor");
 
   const [stage, setStage] = useState<Stage>("setup");
@@ -62,7 +69,12 @@ export default function CalculatorPage() {
           [API_KEY_HEADER]: apiKey,
         },
         body: JSON.stringify({
-          profile: { breed, ageValue, ageUnit, environment },
+          profile: {
+            breed,
+            ageYears: Number(ageYears) || 0,
+            ageMonths: Number(ageMonths) || 0,
+            environment,
+          },
           history: nextHistory,
         }),
       });
@@ -74,7 +86,14 @@ export default function CalculatorPage() {
       }
 
       if (data.type === "question") {
-        setHistory([...nextHistory, { role: "assistant", content: data.question }]);
+        setHistory([
+          ...nextHistory,
+          {
+            role: "assistant",
+            content: data.question,
+            ...(data.visualAid ? { visualAid: data.visualAid } : {}),
+          },
+        ]);
         setStage("asking");
       } else {
         setHistory(nextHistory);
@@ -93,7 +112,9 @@ export default function CalculatorPage() {
       setError("請先輸入貓咪品種");
       return;
     }
-    if (!Number.isFinite(ageValue) || ageValue <= 0) {
+    const years = Number(ageYears) || 0;
+    const months = Number(ageMonths) || 0;
+    if (years === 0 && months === 0) {
       setError("請輸入有效的年齡");
       return;
     }
@@ -115,8 +136,8 @@ export default function CalculatorPage() {
 
   function handleRestart() {
     setBreed("");
-    setAgeValue(1);
-    setAgeUnit("years");
+    setAgeYears("1");
+    setAgeMonths("0");
     setEnvironment("indoor");
     setStage("setup");
     setHistory([]);
@@ -182,28 +203,31 @@ export default function CalculatorPage() {
                 />
               </div>
 
-              <div className="flex gap-4">
-                <div className="flex flex-1 flex-col gap-2">
-                  <label className="text-sm font-medium text-foreground/80">年齡</label>
-                  <input
-                    type="number"
-                    min={0}
-                    step="0.5"
-                    value={ageValue}
-                    onChange={(e) => setAgeValue(Number(e.target.value))}
-                    className={FIELD_CLASS}
-                  />
-                </div>
-                <div className="flex w-28 flex-col gap-2">
-                  <label className="text-sm font-medium text-foreground/80">單位</label>
-                  <select
-                    value={ageUnit}
-                    onChange={(e) => setAgeUnit(e.target.value as "years" | "months")}
-                    className={FIELD_CLASS}
-                  >
-                    <option value="years">歲</option>
-                    <option value="months">個月</option>
-                  </select>
+              <div className="flex flex-col gap-2">
+                <label className="text-sm font-medium text-foreground/80">年齡</label>
+                <div className="flex gap-3">
+                  <div className="flex flex-1 items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={ageYears}
+                      onChange={(e) => setAgeYears(sanitizeIntegerInput(e.target.value))}
+                      className={`${FIELD_CLASS} min-w-0 text-center`}
+                    />
+                    <span className="shrink-0 text-sm text-foreground/70">歲</span>
+                  </div>
+                  <div className="flex flex-1 items-center gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      pattern="[0-9]*"
+                      value={ageMonths}
+                      onChange={(e) => setAgeMonths(sanitizeIntegerInput(e.target.value))}
+                      className={`${FIELD_CLASS} min-w-0 text-center`}
+                    />
+                    <span className="shrink-0 text-sm text-foreground/70">個月</span>
+                  </div>
                 </div>
               </div>
 
@@ -260,13 +284,24 @@ export default function CalculatorPage() {
                 {history.map((turn, i) => (
                   <div
                     key={i}
-                    className={
-                      turn.role === "assistant"
-                        ? "self-start rounded-2xl rounded-tl-sm bg-blush-soft px-4 py-2.5 text-sm text-foreground"
-                        : "self-end rounded-2xl rounded-tr-sm bg-foreground px-4 py-2.5 text-sm text-background"
-                    }
+                    className={`flex flex-col gap-2 ${
+                      turn.role === "assistant" ? "items-start" : "items-end"
+                    }`}
                   >
-                    {turn.content}
+                    <div
+                      className={
+                        turn.role === "assistant"
+                          ? "rounded-2xl rounded-tl-sm bg-blush-soft px-4 py-2.5 text-sm text-foreground"
+                          : "rounded-2xl rounded-tr-sm bg-foreground px-4 py-2.5 text-sm text-background"
+                      }
+                    >
+                      {turn.content}
+                    </div>
+                    {turn.visualAid === "body-condition" && (
+                      <div className="w-full max-w-sm rounded-2xl border border-line bg-background p-3">
+                        <BodyConditionGuide />
+                      </div>
+                    )}
                   </div>
                 ))}
               </div>

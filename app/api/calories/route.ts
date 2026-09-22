@@ -36,11 +36,14 @@ export async function POST(request: Request) {
   if (!profile?.breed?.trim()) {
     return NextResponse.json({ error: "請提供貓咪品種" }, { status: 400 });
   }
-  if (!Number.isFinite(profile.ageValue) || profile.ageValue <= 0) {
-    return NextResponse.json({ error: "請提供有效的年齡" }, { status: 400 });
+  if (!Number.isInteger(profile.ageYears) || profile.ageYears < 0) {
+    return NextResponse.json({ error: "請提供有效的年齡（歲）" }, { status: 400 });
   }
-  if (profile.ageUnit !== "years" && profile.ageUnit !== "months") {
-    return NextResponse.json({ error: "年齡單位不正確" }, { status: 400 });
+  if (!Number.isInteger(profile.ageMonths) || profile.ageMonths < 0) {
+    return NextResponse.json({ error: "請提供有效的年齡（月）" }, { status: 400 });
+  }
+  if (profile.ageYears === 0 && profile.ageMonths === 0) {
+    return NextResponse.json({ error: "請提供有效的年齡" }, { status: 400 });
   }
   if (!ENVIRONMENT_LABELS[profile.environment]) {
     return NextResponse.json({ error: "飼養環境不正確" }, { status: 400 });
@@ -75,7 +78,10 @@ export async function POST(request: Request) {
 }
 
 function profileSummary(profile: CatProfile): string {
-  const age = `${profile.ageValue} ${profile.ageUnit === "years" ? "歲" : "個月"}`;
+  const parts: string[] = [];
+  if (profile.ageYears > 0) parts.push(`${profile.ageYears} 歲`);
+  if (profile.ageMonths > 0) parts.push(`${profile.ageMonths} 個月`);
+  const age = parts.join(" ");
   return `- 品種：${profile.breed}\n- 年齡：${age}\n- 飼養環境：${ENVIRONMENT_LABELS[profile.environment]}`;
 }
 
@@ -85,7 +91,8 @@ const BODY_CONDITION_INSTRUCTION = `貓咪體態（過瘦／理想／過重）�
 - 「從正上方看貓咪，牠的腰部兩側是否有明顯的腰身內縮？」
 - 「用手輕壓貓咪的肋骨附近，能不能清楚摸到肋骨？摸起來是否有一層明顯脂肪覆蓋？」
 - 「貓咪的腹部是否有下垂、明顯脂肪墊或鬆垮的情況？」
-根據使用者對這些具體描述的回答，由你自行判斷貓咪的身體狀況評分（Body Condition Score），並將此判斷結果用於熱量計算與 basis 說明中，不要直接採用使用者自己認定的胖瘦標籤。`;
+根據使用者對這些具體描述的回答，由你自行判斷貓咪的身體狀況評分（Body Condition Score），並將此判斷結果用於熱量計算與 basis 說明中，不要直接採用使用者自己認定的胖瘦標籤。
+當你問的是上述這類與體態判斷相關的問題時，請在該次回覆的 JSON 中加上 "visualAid": "body-condition"，前端會顯示過瘦／理想／過重的對照圖輔助使用者理解如何觀察，其餘問題不要加這個欄位。`;
 
 const TAIWAN_BRAND_REFERENCE = `台灣網購（momo購物網、PChome 24h 購物等）可購得，且官方網站明確標示配方符合美國 AAFCO 貓咪營養標準的品牌參考（飲食建議只能從以下品牌中選擇，不可推薦清單以外的品牌）：
 1. Royal Canin 法國皇家（royalcanin.com 官網標示符合 AAFCO 貓咪營養標準）— 依生命階段與需求分幼貓/室內成貓/高齡貓等系列；乾糧熱量約落在 340-380 大卡/100克，主食濕糧餐包約 80-100 大卡/85克
@@ -137,7 +144,7 @@ async function generateNextStep(
 - 最多可以問 ${MAX_FOLLOWUP_QUESTIONS} 個問題，請把握機會優先詢問對計算影響最大的資訊（尤其是體重）。
 - 問題須簡短明確、易於使用者回答，使用繁體中文。
 - 僅輸出 JSON，不要有其他文字，格式為以下兩者之一：
-  { "type": "question", "question": "問題內容" }
+  { "type": "question", "question": "問題內容", "visualAid": "body-condition（僅體態判斷問題需要，其餘省略此欄位）" }
   或
   ${resultJsonSchemaDescription()}
 
@@ -209,6 +216,7 @@ function toFallbackResult(note?: string): CalorieResultResponse {
 type RawCalorieJson = {
   type?: string;
   question?: string;
+  visualAid?: string;
   dailyCalories?: number;
   lifeStage?: string;
   basis?: string;
@@ -223,7 +231,11 @@ function parseCalorieResponse(raw: string): CalorieResponse {
   const parsed = JSON.parse(raw) as RawCalorieJson;
 
   if (parsed.type === "question" && parsed.question) {
-    return { type: "question", question: parsed.question };
+    return {
+      type: "question",
+      question: parsed.question,
+      ...(parsed.visualAid === "body-condition" ? { visualAid: "body-condition" as const } : {}),
+    };
   }
 
   const foodSuggestions: FoodSuggestion[] = (parsed.foodSuggestions ?? []).map((s) => ({
